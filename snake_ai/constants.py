@@ -12,10 +12,10 @@ font = pygame.font.Font('arial.ttf', 25)
 BLOCK_SIZE = 20
 
 WIDTH, HEIGHT = 640, 480
-MAPSIZEX = int(WIDTH / BLOCK_SIZE) + 2
-MAPSIZEY = int(HEIGHT / BLOCK_SIZE) + 2
+MAPSIZEX = int(20)
+MAPSIZEY = int(12)
 
-SPEED = 50
+SPEED = 500
 
 WHITE = (255, 255, 255)
 RED = (200, 0, 0)

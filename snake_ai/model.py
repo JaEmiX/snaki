@@ -6,18 +6,23 @@ import torch.nn.functional as F
 import os
 
 # Determine if CUDA is available
+from snake_ai.constants import MAPSIZEX, MAPSIZEY
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class LinearQNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
+        super(LinearQNet, self).__init__()
         self.linear1 = nn.Linear(input_size, hidden_size)
+        self.relu1 = nn.ReLU()
         self.linear2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        x = F.relu(self.linear1(x))
+        x = self.linear1(x)
+        x = self.relu1(x)
         x = self.linear2(x)
+
         return x
 
     def save(self, file_name=None):
@@ -34,10 +39,10 @@ class LinearQNet(nn.Module):
 
     @classmethod
     def load(cls, file_name='model.pth'):
-        model_folder_path = './model'
+        model_folder_path = ''
         file_name = os.path.join(model_folder_path, file_name)
 
-        model = cls().to(device)  # Move model to the device
+        model = cls(4 + MAPSIZEX * MAPSIZEY, 20000, 3).to(device)  # Move model to the device
         model.load_state_dict(torch.load(file_name, map_location=device))  # Load the model to the appropriate device
         return model
 
@@ -69,7 +74,8 @@ class QTrainer:
         for idx in range(len(done)):
             q_new = reward[idx]
             if not done[idx]:
-                q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                calc_disc = self.gamma * torch.max(self.model(next_state[idx]))
+                q_new = reward[idx] + calc_disc
             target[idx][torch.argmax(action[idx]).item()] = q_new
 
         self.optimizer.zero_grad()
