@@ -2,25 +2,31 @@ import datetime
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 import os
 
 # Determine if CUDA is available
-from snake_ai.constants import MAPSIZEX, MAPSIZEY
+from snake_ai.constants import MAP_SIZE, HIDDEN_LAYER
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class LinearQNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size_direction, input_size_map, hidden_size, output_size):
         super(LinearQNet, self).__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.linear_direction = nn.Linear(input_size_direction, hidden_size // 2)
+        self.linear_map = nn.Linear(input_size_map, hidden_size // 2)
         self.relu1 = nn.ReLU()
         self.linear2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        x = self.linear1(x)
-        x = self.relu1(x)
+        # Ensure x has at least two dimensions (batch dimension and input features)
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)  # Add batch dimension if missing
+
+        x1 = self.linear_direction(x[:, :1])
+        x2 = self.linear_map(x[:, 1:])
+        combine = torch.cat((x1, x2), dim=1)
+        x = self.relu1(combine)
         x = self.linear2(x)
 
         return x
@@ -42,7 +48,7 @@ class LinearQNet(nn.Module):
         model_folder_path = ''
         file_name = os.path.join(model_folder_path, file_name)
 
-        model = cls(4 + MAPSIZEX * MAPSIZEY, 20000, 3).to(device)  # Move model to the device
+        model = cls(1, MAP_SIZE, HIDDEN_LAYER, 3).to(device)  # Move model to the device
         model.load_state_dict(torch.load(file_name, map_location=device))  # Load the model to the appropriate device
         return model
 
