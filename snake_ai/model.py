@@ -13,8 +13,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class LinearQNet(nn.Module):
     def __init__(self, input_size_direction, input_size_map, hidden_size, output_size):
         super(LinearQNet, self).__init__()
-        self.linear_direction = nn.Linear(input_size_direction, hidden_size // 2)
-        self.linear_map = nn.Linear(input_size_map, hidden_size // 2)
+        self.linear_direction = nn.Linear(input_size_direction, (hidden_size // 8))
+        self.linear_map = nn.Linear(input_size_map, (hidden_size // 8) * 7)
         self.relu1 = nn.ReLU()
         self.linear2 = nn.Linear(hidden_size, output_size)
 
@@ -31,14 +31,14 @@ class LinearQNet(nn.Module):
 
         return x
 
-    def save(self, file_name=None):
+    def save(self, record, file_name=None):
         model_folder_path = './model'
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)
 
         if file_name is None:
             current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            file_name = f"model_{current_time}.pth"
+            file_name = f"model_{current_time}_record{record}.pth"
 
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)

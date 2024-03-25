@@ -10,12 +10,16 @@ pygame.init()
 font = pygame.font.Font('arial.ttf', 25)
 
 # AI
-USE_LAST_MODEL = False
-HIDDEN_LAYER = 10_000
+HIDDEN_LAYER = 6_000
+MAX_MEMORY = 200_000
+BATCH_SIZE = 18
+LR = 0.04  # learning rate
+GAMMA = 0.015  # discount rate
 
 # GAME
-GAME_SPEED = 500
-RENDER_UI = True
+GAME_CLOCK_HITS = 2000
+Direction = Enum('Direction', 'RIGHT LEFT UP DOWN')
+Point = namedtuple('Point', 'x, y')
 
 # MAP
 BLOCK_SIZE = 20
@@ -30,9 +34,6 @@ RED = (200, 0, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 150, 255)
 BLACK = (0, 0, 0)
-
-Direction = Enum('Direction', 'RIGHT LEFT UP DOWN')
-Point = namedtuple('Point', 'x, y')
 
 
 @dataclass(

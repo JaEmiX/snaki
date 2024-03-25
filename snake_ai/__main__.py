@@ -1,11 +1,28 @@
 # main.py
-from snake_ai.constants import USE_LAST_MODEL
+import argparse
+import json
+
+import os
+import sys
+
 from snake_ai.game import SnakeGameAI
 from snake_ai.agent import Agent
-from snake_ai.helper import plot
+from snake_ai.helper import plot, cleanup_models
+from snake_ai.json_manager import add_to_epoch, read_data, update_record
+
+# Parsing the command-line arguments for the configuration file
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', type=str, required=True, help='Path to the config file.')
+args = parser.parse_args()
+
+# Loading the config file
+with open(args.config, 'r') as config_file:
+    config = json.load(config_file)
 
 
 def main():
+    maxRecord = read_data()['record']
+    epoch = read_data()['epoch']
     reward_all_steps = 0
     plot_reward = []
     plot_mean_rewards = []
@@ -14,7 +31,7 @@ def main():
     agent = Agent()
 
     # load the last file if exists
-    if USE_LAST_MODEL:
+    if config['use_last_model']:
         agent.load_latest_model()
 
     game = SnakeGameAI()
@@ -24,7 +41,7 @@ def main():
         final_move = agent.get_action(state_old)
         reward, done, score = game.play_step(final_move)
         state_new = agent.get_state(game)
-        agent.train_short_memory(state_old, final_move, reward, state_new, done)
+        agent.train_short_memory(state_old, final_move, reward, state_new, done, score)
         agent.remember(state_old, final_move, reward, state_new, done, score)
 
         reward_all_steps += reward
@@ -36,9 +53,10 @@ def main():
 
             if score > record:
                 record = score
-                agent.model.save()
+                agent.model.save(record)
 
-            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+            if score > 0:
+                print('Game', agent.n_games, 'Score', score, 'Record:', record)
 
             plot_reward.append(reward_all_steps)
             total_reward += reward_all_steps
@@ -47,6 +65,33 @@ def main():
             plot(plot_reward, plot_mean_rewards)
 
             reward_all_steps = 0
+
+            if epoch > 5000:
+                shutdown_program()
+
+            if agent.n_games > 750 or record >= maxRecord:
+                if record >= maxRecord:
+                    update_record(record + 1)
+
+                add_to_epoch(1)
+                restart_program()
+
+
+def shutdown_program():
+    sys.exit(0)
+
+
+def restart_program():
+    """Restarts the current program, with file objects and descriptors
+
+    """
+    cleanup_models()
+
+    try:
+        # This does not work within the PyCharm debugger, only when run normally
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as e:
+        print('Failed to restart:', e)
 
 
 if __name__ == '__main__':

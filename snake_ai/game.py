@@ -4,14 +4,17 @@ from collections import deque
 import numpy as np
 import pygame
 
-from snake_ai.constants import TileNames, BLOCK_SIZE, Direction, Point, RED, WHITE, font, BLUE1, BLACK, GAME_SPEED, \
-    WIDTH, HEIGHT, MAP_SIZE_X, MAP_SIZE_Y, BLUE2, MAP_SIZE, RENDER_UI
+from snake_ai.constants import TileNames, Direction, Point, GAME_CLOCK_HITS, MAP_SIZE_X, MAP_SIZE_Y, MAP_SIZE
+from snake_ai.render import Render
+
 from snake_ai.rewards.death_reward import calc_death_reward
 from snake_ai.rewards.food_reward import calc_food_reward
 from snake_ai.rewards.normal_reward import calc_normal_reward
 
 
 class SnakeGameAI:
+    renderer = Render()
+
     def __init__(self):  # dimensions
         self.map_array = [TileNames.Floor] * MAP_SIZE
         for y in range(MAP_SIZE_Y):
@@ -19,13 +22,8 @@ class SnakeGameAI:
                 if x == 0 or y == 0 or y == MAP_SIZE_Y - 1 or x == MAP_SIZE_X - 1:
                     self.map_array[y * MAP_SIZE_X + x] = TileNames.Border
 
-        self.w = WIDTH
-        self.h = HEIGHT
-        self.display = pygame.display.set_mode((self.w, self.h))
         self.goodMove = 0
 
-        pygame.display.set_caption('Snake')
-        self.clock = pygame.time.Clock()
         self.lastDist = 0.0
         self.moves_since_last_food = 0
 
@@ -91,7 +89,7 @@ class SnakeGameAI:
             game_over = True
             reward = calc_death_reward(self, True)
             return reward, game_over, self.score
-        if self.frame_iteration > 100 * len(self.snake):
+        if self.frame_iteration > 200:
             dead_look_reward = -500
             game_over = True
             reward = dead_look_reward
@@ -108,8 +106,8 @@ class SnakeGameAI:
             reward = calc_normal_reward(self)
             self.snake.pop()
 
-        self._update_ui()
-        self.clock.tick(GAME_SPEED)
+        self.renderer.update_ui(self)
+        self.renderer.clock.tick(GAME_CLOCK_HITS)
         return reward, game_over, self.score
 
     def is_collision(self, pt=None):
@@ -127,33 +125,6 @@ class SnakeGameAI:
             return True
 
         return False
-
-    def _update_ui(self):
-        if RENDER_UI:
-            self.display.fill(WHITE)
-
-            for y in range(MAP_SIZE_Y):
-                for x in range(MAP_SIZE_X):
-                    if self.map_array[y * MAP_SIZE_X + x] == TileNames.Border:
-                        pygame.draw.rect(self.display, BLACK,
-                                         pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-                    elif self.map_array[y * MAP_SIZE_X + x] == TileNames.Floor:
-                        pygame.draw.rect(self.display, WHITE,
-                                         pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-
-            for pt in self.snake[1:]:
-                pygame.draw.rect(self.display, BLUE1,
-                                 pygame.Rect(pt.x * BLOCK_SIZE, pt.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-            pygame.draw.rect(self.display, BLUE2,
-                             pygame.Rect(self.snake[0].x * BLOCK_SIZE, self.snake[0].y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-
-            pygame.draw.rect(self.display, RED,
-                             pygame.Rect(self.food.x * BLOCK_SIZE, self.food.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
-
-            text = font.render("Score: " + str(self.score), True, BLACK)
-            self.display.blit(text, [0, 300])
-
-        pygame.display.flip()
 
     def _move(self, action):
         clock_wise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]

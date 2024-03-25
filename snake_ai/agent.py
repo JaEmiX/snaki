@@ -6,28 +6,25 @@ import random
 import numpy as np  # numpy
 from collections import deque  # data structure to store memory
 
-from snake_ai.constants import MAP_SIZE, HIDDEN_LAYER
-from snake_ai.game import SnakeGameAI, Direction, Point  # importing the game created in step 1
+from snake_ai.constants import MAP_SIZE, HIDDEN_LAYER, MAX_MEMORY, LR, BATCH_SIZE, GAMMA
+from snake_ai.game import SnakeGameAI  # importing the game created in step 1
+from snake_ai.json_manager import read_data
 from snake_ai.model import LinearQNet, QTrainer  # importing the neural net from step 2
-from snake_ai.helper import plot  # importing the plotter from step 2
-
-MAX_MEMORY = 200_000
-BATCH_SIZE = 2
-LR = 0.05  # learning rate
 
 
 class Agent:
     def __init__(self):
         self.n_games = 0
-        self.epsilon = 0.05  # randomness
-        self.gamma = 0.01  # discount rate
+        self.epsilon = 0.02  # randomness
         self.memory = deque(maxlen=MAX_MEMORY)
 
         self.model = LinearQNet(1, MAP_SIZE, HIDDEN_LAYER, 3)  # input size, hidden size, output size
-        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        self.trainer = QTrainer(self.model, lr=LR, gamma=GAMMA)
 
         self.trained_random_nr = 0
         self.trained_nr = 0
+
+        self.max_record = read_data()['record']
 
     def load_latest_model(self):
         model_files = glob.glob('./model/model_*.pth')
@@ -37,32 +34,21 @@ class Agent:
 
     @staticmethod
     def get_state(game: SnakeGameAI):
-        # dir_l = game.direction == Direction.LEFT
-        # dir_r = game.direction == Direction.RIGHT
-        # dir_u = game.direction == Direction.UP
-        # dir_d = game.direction == Direction.DOWN
-
         near = game.goodMove
 
         state = [
-            # dir_l,  # direction
-            # dir_r,
-            # dir_u,
-            # dir_d,
             near,
-
             # map in one dimension
             *game.map
         ]
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done, score):
-        if score > 0:
+        if score > self.max_record - 3:
             self.memory.append((state, action, reward, next_state, done))  # popleft if MAX_MEMORY is reached
 
     def train_long_memory(self, score):
-        if score > 0:
-
+        if score > self.max_record - 3:
             if len(self.memory) > BATCH_SIZE:
                 mini_sample = random.sample(self.memory, BATCH_SIZE)  # list of tuples
                 self.trained_random_nr += 1
@@ -75,8 +61,9 @@ class Agent:
             states, actions, rewards, next_states, dones = zip(*mini_sample)
             self.trainer.train_step(states, actions, rewards, next_states, dones)
 
-    def train_short_memory(self, state, action, reward, next_state, done):
-        self.trainer.train_step(state, action, reward, next_state, done)
+    def train_short_memory(self, state, action, reward, next_state, done, score):
+        if score > self.max_record - 3:
+            self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
         self.epsilon = 1000 - self.n_games

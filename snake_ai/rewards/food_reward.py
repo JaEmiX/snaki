@@ -6,6 +6,6 @@ if TYPE_CHECKING:
 
 
 def calc_food_reward(snake: 'SnakeGameAI'):
-    food_reward = 40 + 5 * snake.score
+    food_reward = 60 + 8 * snake.score - snake.moves_since_last_food * 0.1
     return food_reward
 
