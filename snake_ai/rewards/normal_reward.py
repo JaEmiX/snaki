@@ -29,6 +29,9 @@ def calc_normal_reward(snake: 'SnakeGameAI'):
     movement_cost = calc_movement_cost(snake)
     reward -= movement_cost
 
+    reenter_field_cost = calc_reenter_field_cost(snake)
+    reward -= reenter_field_cost
+
     return reward
 
 
@@ -60,11 +63,11 @@ def calc_distance_reward(snake: 'SnakeGameAI', d_distance: float):
 
     if d_distance < 0:
         if current_distance > 12:
-            distance_reward = -5/18 * current_distance + 5/3
+            distance_reward = -5 / 18 * current_distance + 5 / 3
 
     elif d_distance > 0:
         if current_distance <= 6.0:
-            distance_reward = (5/36) * current_distance**2 - (5/3) * current_distance + 5
+            distance_reward = (5 / 36) * current_distance ** 2 - (5 / 3) * current_distance + 5
 
     return distance_reward
 
@@ -120,3 +123,9 @@ def calc_not_dead_reward(snake: 'SnakeGameAI'):
         current_not_dead_reward = 0
 
     return current_not_dead_reward
+
+
+def calc_reenter_field_cost(snake: 'SnakeGameAI'):
+    if snake.movement_field_repetition:
+        return 0.5
+    return 0

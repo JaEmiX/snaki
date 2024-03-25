@@ -17,11 +17,14 @@ class SnakeGameAI:
 
     def __init__(self):  # dimensions
         self.map_array = [TileNames.Floor] * MAP_SIZE
+
         for y in range(MAP_SIZE_Y):
             for x in range(MAP_SIZE_X):
                 if x == 0 or y == 0 or y == MAP_SIZE_Y - 1 or x == MAP_SIZE_X - 1:
                     self.map_array[y * MAP_SIZE_X + x] = TileNames.Border
 
+        self.movement_map_array = []
+        self.movement_field_repetition = False
         self.goodMove = 0
 
         self.lastDist = 0.0
@@ -60,6 +63,12 @@ class SnakeGameAI:
         self.frame_iteration = 0
         self.moves_since_last_food = 0
         self.goodMove = 0
+        self._reset_movement_map_array()
+
+    def _reset_movement_map_array(self):
+        self.movement_map_array = []
+        self.movement_field_repetition_count = 0
+
 
     def _place_food(self):
         x = random.randint(1, MAP_SIZE_X - 2)
@@ -99,6 +108,7 @@ class SnakeGameAI:
             self.score += 1
             reward = calc_food_reward(self)
             self._place_food()
+            self._reset_movement_map_array()
             self.moves_since_last_food = 0
 
         else:
@@ -153,3 +163,10 @@ class SnakeGameAI:
         self.head = Point(x, y)
 
         self.memory_queue.append(self.direction)
+
+        current_movement_index = y * MAP_SIZE_X + x
+        if current_movement_index in self.movement_map_array:
+            self.movement_field_repetition = True
+        else:
+            self.movement_map_array.append(current_movement_index)
+            self.movement_field_repetition = False

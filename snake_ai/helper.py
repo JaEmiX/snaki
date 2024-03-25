@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import os
 from pathlib import Path
 
+from snake_ai.json_manager import read_data, update_data_record_model
+from snake_ai.record_model import RecordModel
+
 plt.ion()
 matplotlib.use('TkAgg')
 
@@ -24,28 +27,32 @@ def plot(rewards, mean_rewards):
 
 
 def cleanup_models():
-    # The directory containing the files
-    folder_path = './model'
+    list_of_best_models = read_data().record_models
 
-    # Convert to Path object for easier manipulation
-    folder = Path(folder_path)
+    max_record = read_data().record
 
-    # Get a list of all files in the directory, sorted by modification time
-    files = sorted(folder.glob('*'), key=os.path.getmtime)
+    files_to_delete = []
 
-    # Preserve the first and the newest files
-    # First file (oldest by addition)
-    first_file = files[0]
+    for best_model in list_of_best_models:
+        if best_model['record'] < max_record:
+            files_to_delete.append(best_model['model_name'])
 
-    # Newest file (latest by modification)
-    newest_file = files[-1]
+    max_reward = 0
 
-    # Remove first and newest from the list to delete
-    files_to_delete = [f for f in files if f not in (first_file, newest_file)]
+    for best_model in list_of_best_models:
+        if best_model['reward'] > max_reward and best_model['record'] == max_record:
+            max_reward = best_model['reward']
+
+    for best_model in list_of_best_models:
+        if best_model['reward'] < max_reward and best_model['record'] == max_record:
+            files_to_delete.append(best_model['model_name'])
 
     # Delete the files
     for file in files_to_delete:
         os.remove(file)
         print(f"Deleted {file}")
 
-    print(f"Preserved {first_file} and {newest_file}")
+    best_model_list = [m for m in list_of_best_models if m['model_name'] not in files_to_delete]
+    update_data_record_model(best_model_list)
+
+    print(f"Preserved {list_of_best_models[0]} list with len {len(list_of_best_models)}")

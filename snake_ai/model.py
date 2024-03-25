@@ -6,6 +6,8 @@ import os
 
 # Determine if CUDA is available
 from snake_ai.constants import MAP_SIZE, HIDDEN_LAYER
+from snake_ai.json_manager import read_data, add_data_record_model
+from snake_ai.record_model import RecordModel
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -31,17 +33,22 @@ class LinearQNet(nn.Module):
 
         return x
 
-    def save(self, record, file_name=None):
+    def save(self, record, reward_all_steps_in_one_game, file_name=None):
         model_folder_path = './model'
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)
 
         if file_name is None:
-            current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')
             file_name = f"model_{current_time}_record{record}.pth"
 
-        file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
+        session_record = read_data().record
+
+        if record >= session_record:
+            file_name = os.path.join(model_folder_path, file_name)
+            torch.save(self.state_dict(), file_name)
+            record_model = RecordModel(record=record, reward=reward_all_steps_in_one_game, model_name=file_name)
+            add_data_record_model(record_model)
 
     @classmethod
     def load(cls, file_name='model.pth'):

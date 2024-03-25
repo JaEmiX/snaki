@@ -24,7 +24,7 @@ class Agent:
         self.trained_random_nr = 0
         self.trained_nr = 0
 
-        self.max_record = read_data()['record']
+        self.max_record = read_data().record
 
     def load_latest_model(self):
         model_files = glob.glob('./model/model_*.pth')

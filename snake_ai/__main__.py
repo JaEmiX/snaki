@@ -8,7 +8,7 @@ import sys
 from snake_ai.game import SnakeGameAI
 from snake_ai.agent import Agent
 from snake_ai.helper import plot, cleanup_models
-from snake_ai.json_manager import add_to_epoch, read_data, update_record
+from snake_ai.json_manager import read_data, add_data_epoch, update_data_record
 
 # Parsing the command-line arguments for the configuration file
 parser = argparse.ArgumentParser()
@@ -21,13 +21,13 @@ with open(args.config, 'r') as config_file:
 
 
 def main():
-    maxRecord = read_data()['record']
-    epoch = read_data()['epoch']
-    reward_all_steps = 0
+    maxRecord = read_data().record
+    epoch = read_data().epoch
+    reward_all_steps_in_one_game = 0
     plot_reward = []
     plot_mean_rewards = []
     total_reward = 0
-    record = 0
+    highscore = 0
     agent = Agent()
 
     # load the last file if exists
@@ -44,36 +44,36 @@ def main():
         agent.train_short_memory(state_old, final_move, reward, state_new, done, score)
         agent.remember(state_old, final_move, reward, state_new, done, score)
 
-        reward_all_steps += reward
+        reward_all_steps_in_one_game += reward
 
         if done:
             game.reset()
             agent.n_games += 1
             agent.train_long_memory(score)
 
-            if score > record:
-                record = score
-                agent.model.save(record)
+            if score >= highscore:
+                highscore = score
+                agent.model.save(highscore, reward_all_steps_in_one_game)
 
             if score > 0:
-                print('Game', agent.n_games, 'Score', score, 'Record:', record)
+                print('Game', agent.n_games, 'Score', score, 'Highscore:', highscore)
 
-            plot_reward.append(reward_all_steps)
-            total_reward += reward_all_steps
+            plot_reward.append(reward_all_steps_in_one_game)
+            total_reward += reward_all_steps_in_one_game
             mean_rewards = total_reward / agent.n_games
             plot_mean_rewards.append(mean_rewards)
             plot(plot_reward, plot_mean_rewards)
 
-            reward_all_steps = 0
+            reward_all_steps_in_one_game = 0
 
             if epoch > 5000:
                 shutdown_program()
 
-            if agent.n_games > 750 or record >= maxRecord:
-                if record >= maxRecord:
-                    update_record(record + 1)
+            if agent.n_games > 750 or highscore > maxRecord:
+                if highscore > maxRecord:
+                    update_data_record(highscore)
 
-                add_to_epoch(1)
+                add_data_epoch(1)
                 restart_program()
 
 
